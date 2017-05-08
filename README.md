@@ -1,6 +1,6 @@
-# Fork
+# About this fork
 
-:warning: this is fork from cyber-atomus/autowx, modified to suit my needs. 
+:warning: this is fork from cyber-atomus/autowx, modified to fit my needs.
 
 Main changes:
 - changed directory structure (minor)
