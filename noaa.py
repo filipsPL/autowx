@@ -15,7 +15,7 @@ import sys
 ## Config header, sorry
 ## TODO: Better config system
 ##
-systemDir='/home/filips/progs/autowx/'
+systemDir='/home/filips/github/autowx/'
 # Satellite names in TLE plus their frequency
 #satellites = ['NOAA 18','NOAA 15', 'NOAA 19', 'METEOR-M 2']
 satellites = ['NOAA 18','NOAA 15', 'NOAA 19']
@@ -38,7 +38,7 @@ wavrate='11025'
 stationLat='52.3404'
 stationLon='-21.0579'
 stationAlt='111'
-tleDir='/home/filips/progs/autowx/tle/'
+tleDir=systemDir+'/tle/'
 tleFile='weather.txt'
 # Minimum elevation
 minElev='20'
