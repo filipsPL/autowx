@@ -213,7 +213,7 @@ def calibrate():
     cmdline = [systemDir + 'kalibruj.sh']
     dongleShift = justRun(cmdline)
     if dongleShift != '':
-        return float(dongleShift)
+        return str(float(dongleShift))
     else:
         return False
 
