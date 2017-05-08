@@ -1,6 +1,19 @@
-autowx
-==============================
-This is a rewrite of rtlsdr-automated-wxsat-capture.
+# Fork
+
+:warning: this is fork from cyber-atomus/autowx, modified to suit my needs. 
+
+Main changes:
+- changed directory structure (minor)
+- auto calibration of the dongle
+- acquiring APRS singnals instead of sleeping
+- may not work as expected.
+
+
+# Orginal readme part:
+
+autowx: This is a rewrite of rtlsdr-automated-wxsat-capture.
+
+
 
 Automate Recording of Low Earth Orbit NOAA & Meteor Weather Satellites
 License:  MIT

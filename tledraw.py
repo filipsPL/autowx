@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pylab as pl
 
-passImgDir='/opt/wxsat/passes'
-tleFileName='/tmp/weather.txt'
+passImgDir='/home/dane/nasluch/sat/passes/'
+tleFileName='/home/filips/progs/autowx/tle/weather.txt'
 elNOAA=20
 elMETEOR=40
 
@@ -41,7 +41,7 @@ for i, line in enumerate(tledata):
     if "METEOR-M 2" in line: 
         for o in tledata[i:i+3]: METEORM2.append(o.strip('\r\n').rstrip()),
 
-qth = (53.34045, -15.05793, 5)
+qth = (52, -21, 5)
 
 font = {'color':  '#212121',
         'size': 8,

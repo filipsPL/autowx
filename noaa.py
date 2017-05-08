@@ -15,12 +15,13 @@ import sys
 ## Config header, sorry
 ## TODO: Better config system
 ##
-systemDir='/opt/wxsat/bin'
+systemDir='/home/filips/progs/autowx/'
 # Satellite names in TLE plus their frequency
-satellites = ['NOAA 18','NOAA 15', 'NOAA 19', 'METEOR-M 2']
+#satellites = ['NOAA 18','NOAA 15', 'NOAA 19', 'METEOR-M 2']
+satellites = ['NOAA 18','NOAA 15', 'NOAA 19']
 freqs = [137912500, 137620000, 137100000, 137900000]
 # Dongle gain
-dongleGain='44.0'
+dongleGain='49.8'
 #
 # Dongle PPM shift, hopefully this will change to reflect different PPM on freq
 dongleShift='63'
@@ -34,10 +35,10 @@ sampleMeteor='200000'
 # Sample rate of the wav file. Shouldn't be changed
 wavrate='11025'
 #
-stationLat='53.3404'
-stationLon='-15.0579'
-stationAlt='175'
-tleDir='/tmp'
+stationLat='52.3404'
+stationLon='-21.0579'
+stationAlt='111'
+tleDir='/home/filips/progs/autowx/tle/'
 tleFile='weather.txt'
 # Minimum elevation
 minElev='20'
@@ -46,23 +47,23 @@ decodeMeteor='no'
 # Should I remove RAWs after transcoding?
 removeRAW='yes'
 # Directories used in this program
-# wxtoimg install dir
 wxInstallDir='/usr/local/bin'
 # Recording dir, used for RAW and WAV files
 #
-recdir='/opt/wxsat/rec'
+recdir='/home/dane/nasluch/sat/rec'
 #
 # Spectrogram directory, this would be optional in the future
 #
-specdir='/opt/wxsat/spectro'
-#  
+specdir='/home/dane/nasluch/sat/spectro'
+#
 # Output image directory
 #
-imgdir='/opt/wxsat/img'
+imgdir='/home/dane/nasluch/sat/img'
 #
 # Map file directory
 #
-mapDir='/opt/wxsat/maps'
+mapDir='/home/dane/nasluch/sat/maps'
+
 # Options for wxtoimg
 # Create map overlay?
 wxAddOverlay='yes'
@@ -102,11 +103,11 @@ LOG_SCP='n'
 IMG_SCP='n'
 # Logging
 loggingEnable='y'
-logFileName='/opt/wxsat/logs/noaacapture.log'
-scriptPID='/opt/wxsat/logs/noaacapture.pid'
+logFileName='/home/dane/nasluch/sat/logs/noaacapture.log'
+scriptPID='/home/dane/nasluch/sat/logs/noaacapture.pid'
 statusFile='/tmp/info_file'
 # SFPG
-sfpgLink='y'
+sfpgLink='n'
 
 	###############################
 	###                          ##
@@ -173,6 +174,8 @@ else:
 ## Execution loop declaration
 ##
 
+
+
 def runForDuration(cmdline, duration):
     try:
         child = subprocess.Popen(cmdline)
@@ -182,9 +185,38 @@ def runForDuration(cmdline, duration):
         print "OS Error during command: "+" ".join(cmdline)
         print "OS Error: "+e.strerror
 
+def justRun(cmdline):
+    '''Just run the command as long as necesary and return the output'''
+    try:
+        child = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
+        result = child.communicate()[0]
+        return result
+    except OSError as e:
+        print "OS Error during command: "+" ".join(cmdline)
+        print "OS Error: "+e.strerror
+
+
+
 ##
 ## FM Recorder definition
 ##
+
+def runAprs(duration):
+    '''Run aprs iGate'''
+    print bcolors.GRAY + "Running APRS for %s s" % (duration) + bcolors.ENDC
+    cmdline = ['aprs.sh']   # pymultimonaprs or dump1090
+    runForDuration(cmdline, duration)
+
+def calibrate():
+    '''calculate the ppm for the device'''
+    print bcolors.GRAY + "Calibration of the dongle..." + bcolors.ENDC
+    cmdline = [systemDir + 'kalibruj.sh']
+    dongleShift = justRun(cmdline)
+    if dongleShift != '':
+        return float(dongleShift)
+    else:
+        return False
+
 
 def recordFM(freq, fname, duration, xfname):
     print bcolors.GRAY
@@ -266,23 +298,28 @@ def decodeQPSK():
     subprocess.Popen(systemDir+'/decode_meteor.sh')
 
 def decode(fname,aosTime,satName,maxElev,recLen):
+
+    outdir = "%s/%s" % (imgdir, time.strftime("%Y/%m/%d"))
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
     xfNoSpace=xfname.replace(" ","")
     satTimestamp = int(fname)
-    fileNameC = datetime.datetime.fromtimestamp(satTimestamp).strftime('%Y%m%d-%H%M')
+    fileNameC = satName + "-" + datetime.datetime.fromtimestamp(satTimestamp).strftime('%Y%m%d-%H%M')
 
     if wxAddOverlay in ('yes', 'y', '1'):
 	print logLineStart+bcolors.OKBLUE+'Creating overlay map'+logLineEnd
 	createoverlay(fname,aosTime,satName,recLen)
 	print logLineStart+'Creating basic image with overlay map'+logLineEnd
-	m = open(imgdir+'/'+satName+'/'+fileNameC+'-normal-map.jpg.txt',"w+")
+	m = open(outdir+'/'+fileNameC+'-normal-map.jpg.txt',"w+")
 	m.write('\nSAT: '+str(xfNoSpace)+', Elevation max: '+str(maxElev)+', Date: '+str(fname)+'\n')
 	for psikus in open(mapDir+'/'+str(fname)+'-map.png.txt',"r").readlines():
 	    res=psikus.replace("\n", " \n")
 	    m.write(res)
-	cmdline = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxAddText,'-A','-o','-R1','-t','NOAA','-Q '+wxJPEGQuality,recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-normal-map.jpg']
+	cmdline = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxAddText,'-A','-o','-R1','-t','NOAA','-Q '+wxJPEGQuality,recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-normal-map.jpg']
 	subprocess.call(cmdline, stderr=m, stdout=m)
 	m.close()
-	for line in open(imgdir+'/'+satName+'/'+fileNameC+'-normal-map.jpg.txt',"r").readlines():
+	for line in open(outdir+'/'+fileNameC+'-normal-map.jpg.txt',"r").readlines():
 	    res=line.replace("\n", "")
 	    res2=re.sub(r"(\d)", r"\033[96m\1\033[94m", res)
 	    print logLineStart+bcolors.OKBLUE+res2+logLineEnd
@@ -296,11 +333,11 @@ def decode(fname,aosTime,satName,maxElev,recLen):
 #Copy logs
 	if LOG_SCP in ('yes', 'y', '1'):
 	    print logLineStart+"Sending flight and decode logs..."+bcolors.YELLOW
-	    cmdline_scp_log = [ '/usr/bin/scp',imgdir+'/'+satName+'/'+fileNameC+'-normal-map.jpg.txt',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-normal-map.jpg.txt' ] 
+	    cmdline_scp_log = [ '/usr/bin/scp',outdir+'/'+fileNameC+'-normal-map.jpg.txt',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-normal-map.jpg.txt' ] 
 	    subprocess.call(cmdline_scp_log)
 	if IMG_SCP in ('yes', 'y', '1'):
 	    print logLineStart+"Sending base image with map: "+bcolors.YELLOW
-	    cmdline_scp_img = [ '/usr/bin/scp',imgdir+'/'+satName+'/'+fileNameC+'-normal-map.jpg',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-normal-map.jpg' ] 
+	    cmdline_scp_img = [ '/usr/bin/scp',outdir+'/'+fileNameC+'-normal-map.jpg',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-normal-map.jpg' ] 
 	    subprocess.call(cmdline_scp_img)
 	    print logLineStart+"Sending OK, go on..."+logLineEnd
 ## NOWE
@@ -308,37 +345,37 @@ def decode(fname,aosTime,satName,maxElev,recLen):
 	    print "Channel A:"+channelA+", Channel B:"+channelB
 	    for enhancements in wxEnhList:
 		print logLineStart+'Creating '+enhancements+' enhancement image'+logLineEnd
-		enhancements_log = open(imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg.txt',"w+")
+		enhancements_log = open(outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg.txt',"w+")
 		enhancements_log.write('\nEnhancement: '+enhancements+', SAT: '+str(xfNoSpace)+', Elevation max: '+str(maxElev)+', Date: '+str(fname)+'\n')
 		if enhancements in ('HVCT', 'HVC'):
 		    if channelA in "1" and channelB in "2":
 			print "1 i 2"
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K0','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K0','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		    elif channelA in "1" and channelB in "1":
 			print "1 i 1 "
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K0','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K0','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		    elif channelA in "1" and channelB in "4":
 			print "1 i 4 "
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K0','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K0','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		    elif channelA in "1" and channelB in "3":
 			print "1 i 3"
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K3','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K3','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		    elif channelA in "2" and channelB in "4":
 			print "2 i 4"
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K1','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K1','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		    elif channelA in "3" and channelB in "4":
 			print "3 i 4"
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K4','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K4','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		    else:
 			print "Kanaly nieznane"
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K1','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-K1','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		if enhancements in ('MSA'):
 		    if channelA in ("1", "2") and channelB in "4":
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		    else:
-			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-o','-c','-R1','-Q '+wxJPEGQuality,'-eNO','-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+			cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-o','-c','-R1','-Q '+wxJPEGQuality,'-eNO','-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		else:
-		    cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg']
+		    cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-A','-o','-c','-R1','-Q '+wxJPEGQuality,'-e',enhancements,'-m',mapDir+'/'+fname+'-map.png'+','+str(wxOverlayOffsetX)+','+str(wxOverlayOffsetY),recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg']
 		subprocess.call(cmdline_enhancements, stderr=enhancements_log, stdout=enhancements_log)
 		for psikus in open(mapDir+'/'+str(fname)+'-map.png.txt',"r").readlines():
 		    res=psikus.replace("\n", " \n")
@@ -346,62 +383,62 @@ def decode(fname,aosTime,satName,maxElev,recLen):
 		enhancements_log.close()
 		if LOG_SCP in ('yes', 'y', '1'):
 		    print logLineStart+"Sending "+enhancements+" flight and decode logs..."+bcolors.YELLOW
-		    cmdline_scp_log = [ '/usr/bin/scp',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg.txt',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-'+enhancements+'-map.jpg.txt' ] 
+		    cmdline_scp_log = [ '/usr/bin/scp',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg.txt',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-'+enhancements+'-map.jpg.txt' ] 
 		    subprocess.call(cmdline_scp_log)
 		    print logLineStart+"Sending logs OK, moving on..."+logLineEnd
 		if IMG_SCP in ('yes', 'y', '1'):
 		    print logLineStart+"Sending "+enhancements+" image with overlay map... "+bcolors.YELLOW
-		    cmdline_scp_img = [ '/usr/bin/scp',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-'+enhancements+'-map.jpg' ] 
+		    cmdline_scp_img = [ '/usr/bin/scp',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-'+enhancements+'-map.jpg' ] 
 		    subprocess.call(cmdline_scp_img)
 		    print logLineStart+"Send image OK, moving on..."+logLineEnd
 
 # SFPG
 	if sfpgLink in ('yes', 'y', '1'):
-	    sciezka_plik=imgdir+'/'+satName+'/'+fileNameC+'-MCIR-precip-map.jpg'
+	    sciezka_plik=outdir+'/'+fileNameC+'-MCIR-precip-map.jpg'
 	    sciezka_plik2=imgdir+'/'+satName+'/_image.jpg'
     	    if os.path.isfile(sciezka_plik2):
 		os.unlink(sciezka_plik2)
 	    os.symlink(sciezka_plik,sciezka_plik2)
     else:
 	print logLineStart+'Creating basic image without map'+logLineEnd
-	r = open(imgdir+'/'+satName+'/'+fileNameC+'-normal.jpg.txt',"w+")
-	cmdline = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-o','-R1','-Q '+wxJPEGQuality,'-t','NOAA',recdir+'/'+xfNoSpace+'-'+fname+'.wav', imgdir+'/'+satName+'/'+fileNameC+'-normal.jpg']
+	r = open(outdir+'/'+fileNameC+'-normal.jpg.txt',"w+")
+	cmdline = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-o','-R1','-Q '+wxJPEGQuality,'-t','NOAA',recdir+'/'+xfNoSpace+'-'+fname+'.wav', outdir+'/'+fileNameC+'-normal.jpg']
 	r.write('\nSAT: '+str(xfNoSpace)+', Elevation max: '+str(maxElev)+', Date: '+str(fname)+'\n')
 	subprocess.call(cmdline, stderr=r, stdout=r)
 	r.close()
-	for line in open(imgdir+'/'+satName+'/'+fileNameC+'-normal.jpg.txt',"r").readlines():
+	for line in open(outdir+'/'+fileNameC+'-normal.jpg.txt',"r").readlines():
 	    res=line.replace("\n", "")
 	    res2=re.sub(r"(\d)", r"\033[96m\1\033[94m", res)
 	    print logLineStart+bcolors.OKBLUE+res2+logLineEnd
 	if LOG_SCP in ('yes', 'y', '1'):
 	    print logLineStart+"Sending flight and decode logs..."+bcolors.YELLOW
-	    cmdline_scp_log = [ '/usr/bin/scp',imgdir+'/'+satName+'/'+fileNameC+'-normal-map.jpg.txt',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-normal-map.jpg.txt' ] 
+	    cmdline_scp_log = [ '/usr/bin/scp',outdir+'/'+fileNameC+'-normal-map.jpg.txt',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-normal-map.jpg.txt' ] 
 	    subprocess.call(cmdline_scp_log)
 	if IMG_SCP in ('yes', 'y', '1'):
 	    print logLineStart+"Sending base image with map: "+bcolors.YELLOW
-	    cmdline_scp_img = [ '/usr/bin/scp',imgdir+'/'+satName+'/'+fileNameC+'-normal-map.jpg',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-normal-map.jpg' ] 
+	    cmdline_scp_img = [ '/usr/bin/scp',outdir+'/'+fileNameC+'-normal-map.jpg',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-normal-map.jpg' ] 
 	    subprocess.call(cmdline_scp_img)
 	    print logLineStart+"Sending OK, go on..."+logLineEnd
 	if wxEnhCreate in ('yes', 'y', '1'):
 	    for enhancements in wxEnhList:
 		print logLineStart+'Creating '+enhancements+' image'+logLineEnd
-		enhancements_log = open(imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-nomap.jpg.txt',"w+")
+		enhancements_log = open(outdir+'/'+fileNameC+'-'+enhancements+'-nomap.jpg.txt',"w+")
 		enhancements_log.write('\nEnhancement: '+enhancements+', SAT: '+str(xfNoSpace)+', Elevation max: '+str(maxElev)+', Date: '+str(fname)+'\n')
-		cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-o','-K','-R1','-Q '+wxJPEGQuality,'-e',enhancements,recdir+'/'+xfNoSpace+'-'+fname+'.wav',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-nomap.jpg']
+		cmdline_enhancements = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxDecodeOpt,wxAddText,'-o','-K','-R1','-Q '+wxJPEGQuality,'-e',enhancements,recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-'+enhancements+'-nomap.jpg']
 		subprocess.call(cmdline_enhancements, stderr=enhancements_log, stdout=enhancements_log)
 		enhancements_log.close()
 		if LOG_SCP in ('yes', 'y', '1'):
 		    print logLineStart+"Sending "+enhancements+" flight and decode logs..."+bcolors.YELLOW
-		    cmdline_scp_log = [ '/usr/bin/scp',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg.txt',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-'+enhancements+'-map.jpg.txt' ] 
+		    cmdline_scp_log = [ '/usr/bin/scp',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg.txt',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-'+enhancements+'-map.jpg.txt' ] 
 		    subprocess.call(cmdline_scp_log)
 		if IMG_SCP in ('yes', 'y', '1'):
 		    print logLineStart+"Sending "+enhancements+" image with overlay map... "+bcolors.YELLOW
-		    cmdline_scp_img = [ '/usr/bin/scp',imgdir+'/'+satName+'/'+fileNameC+'-'+enhancements+'-map.jpg',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-'+enhancements+'-map.jpg' ] 
+		    cmdline_scp_img = [ '/usr/bin/scp',outdir+'/'+fileNameC+'-'+enhancements+'-map.jpg',SCP_USER+'@'+SCP_HOST+':'+SCP_DIR+'/'+satName.replace(" ","\ ")+'-'+fileNameC+'-'+enhancements+'-map.jpg' ] 
 		    subprocess.call(cmdline_scp_img)
 		    print logLineStart+"Sending OK, moving on"+logLineEnd
 
 	if sfpgLink in ('yes', 'y', '1'):
-	    sciezka_plik=imgdir+'/'+satName+'/'+fileNameC+'-MCIR-precip-nomap.jpg'
+	    sciezka_plik=outdir+'/'+fileNameC+'-MCIR-precip-nomap.jpg'
 	    sciezka_plik2=imgdir+'/'+satName+'/_image.jpg'
     	    if os.path.isfile(sciezka_plik2):
 		os.unlink(sciezka_plik2)
@@ -436,6 +473,8 @@ def findNextPass():
 ##
 
 while True:
+
+
     (satName, freq, (aosTime, losTime, duration, maxElev)) = findNextPass()
     now = time.time()
     towait = aosTime-now
@@ -450,7 +489,35 @@ while True:
     if towait>0:
         print logLineStart+"waiting "+bcolors.CYAN+str(towait).split(".")[0]+bcolors.OKGREEN+" seconds  ("+bcolors.CYAN+aosTimeCnv+bcolors.OKGREEN+" to "+bcolors.CYAN+losTimeCnv+", "+str(duration)+bcolors.OKGREEN+"s.) for "+bcolors.YELLOW+satName+bcolors.OKGREEN+" @ "+bcolors.CYAN+str(maxElev)+bcolors.OKGREEN+"° el. "+logLineEnd
         writeStatus(freq,aosTime,losTimeCnv,aosTime,towait,satName,maxElev,'WAITING')
-    	time.sleep(towait)
+    	#time.sleep(towait)
+    	
+    	# here we can do something else if only we have time (check towait time)
+    	if towait >= 300: # we have 5 minutes, so we can play with various tools.
+            
+            newdongleShift = calibrate() # replace the global value
+            if newdongleShift != False:
+                dongleShift = newdongleShift
+                print bcolors.OKGREEN + "Recalculated dongle shift is:", dongleShift, "ppm", bcolors.ENDC
+            else:
+                print bcolors.OKGREEN + "Using the old good dongle shift:", dongleShift, "ppm", bcolors.ENDC
+            
+            
+
+            print "Recalculating waiting time..."
+            now = time.time()
+            towait = aosTime-now
+            print logLineStart+"waiting "+bcolors.CYAN+str(towait).split(".")[0]+bcolors.OKGREEN+" seconds  ("+bcolors.CYAN+aosTimeCnv+bcolors.OKGREEN+" to "+bcolors.CYAN+losTimeCnv+", "+str(duration)+bcolors.OKGREEN+"s.) for "+bcolors.YELLOW+satName+bcolors.OKGREEN+" @ "+bcolors.CYAN+str(maxElev)+bcolors.OKGREEN+"° el. "+logLineEnd
+
+            runAprs(towait-10)
+
+            now = time.time()
+            towait = aosTime-now
+
+            time.sleep(towait-0.1)
+    
+        else:
+            time.sleep(towait)
+            
 
     if aosTime<now:
         recordTime=losTime-now
@@ -467,7 +534,8 @@ while True:
     writeStatus(freq,aosTime,losTimeCnv,str(losTime),str(recordTime).split(".")[0],satName,maxElev,'RECORDING')
 #
     if xfname in ('NOAA 15', 'NOAA 19', 'NOAA 18'):
-	recordWAV(freq,fname,recordTime,xfname)
+        print "record WAV", freq,fname,recordTime,xfname
+        recordWAV(freq,fname,recordTime,xfname)
     elif xfname in ('METEOR-M 2'):
 	recordQPSK(recordTime)
     print logLineStart+"Decoding data"+logLineEnd

@@ -33,11 +33,11 @@ def aoslos(satname,minElev,minElevMeteor,stationLat,stationLon,stationAlt,tleFil
     minElev=int(minElev)
     minElevMeteor=int(minElevMeteor)
 # Recording delay
-    opoznienie='1'
+    opoznienie='3'
 # delay meteor to ~12° - 15°
     meteor_delay='180'
 # Recording short
-    skrocenie='1'
+    skrocenie='3'
 # Shorten meteor recording by ~12° - 15°
     meteor_short='180'
 # Predicting

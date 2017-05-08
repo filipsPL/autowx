@@ -8,7 +8,7 @@ from time import gmtime, strftime
 
 elNOAA=20
 elMETEOR=35
-tleFileName='/tmp/weather.txt'
+tleFileName='/home/filips/progs/autowx/tle/weather.txt'
 
 NOAA15=[]
 NOAA18=[]
@@ -35,7 +35,7 @@ for i, line in enumerate(tledata):
     if "METEOR-M 2" in line: 
         for n in tledata[i:i+3]: METEORM2.append(n.strip('\r\n').rstrip()),
 
-qth = (53.34045, -15.05793, 5)
+qth = (52.04045, -21.1093, 5)
 
 czasStart=time.time()
 czasKoniec=time.time()+86400
