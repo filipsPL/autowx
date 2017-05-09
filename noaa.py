@@ -19,7 +19,8 @@ systemDir='/home/filips/github/autowx/'
 # Satellite names in TLE plus their frequency
 #satellites = ['NOAA 18','NOAA 15', 'NOAA 19', 'METEOR-M 2']
 satellites = ['NOAA 18','NOAA 15', 'NOAA 19']
-freqs = [137912500, 137620000, 137100000, 137900000]
+#freqs = [137912500, 137620000, 137100000, 137900000]
+freqs = [137912500, 137620000, 137100000]
 # Dongle gain
 dongleGain='49.8'
 #
@@ -306,7 +307,7 @@ def decode(fname,aosTime,satName,maxElev,recLen):
 
     xfNoSpace=xfname.replace(" ","")
     satTimestamp = int(fname)
-    fileNameC = satName + "-" + datetime.datetime.fromtimestamp(satTimestamp).strftime('%Y%m%d-%H%M')
+    fileNameC = datetime.datetime.fromtimestamp(satTimestamp).strftime('%Y%m%d-%H%M') + "_" + satName
 
     if wxAddOverlay in ('yes', 'y', '1'):
 	print logLineStart+bcolors.OKBLUE+'Creating overlay map'+logLineEnd
