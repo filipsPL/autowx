@@ -1,5 +1,5 @@
 #!/bin/bash
-TLEDIR=/home/filips/progs/autowx/tle/
+TLEDIR=/home/filips/github/autowx/tle/
 
 rm $TLEDIR/weather.txt
 wget --no-check-certificate -r http://www.celestrak.com/NORAD/elements/weather.txt -O $TLEDIR/weather.txt

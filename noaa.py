@@ -204,7 +204,8 @@ def justRun(cmdline):
 def runAprs(duration):
     '''Run aprs iGate'''
     print bcolors.GRAY + "Running APRS for %s s" % (duration) + bcolors.ENDC
-    cmdline = ['aprs.sh']   # pymultimonaprs or dump1090
+    #cmdline = ['aprs.sh']   # pymultimonaprs or dump1090
+    cmdline = ['pymultimonaprs', '-v']   # pymultimonaprs or dump1090
     runForDuration(cmdline, duration)
 
 def calibrate():
