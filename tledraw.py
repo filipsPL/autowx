@@ -12,7 +12,7 @@ import numpy as np
 import pylab as pl
 
 passImgDir='/home/dane/nasluch/sat/passes/'
-tleFileName='/home/filips/progs/autowx/tle/weather.txt'
+tleFileName='/home/filips/progs/autowx/var/tle/weather.txt'
 elNOAA=20
 elMETEOR=40
 

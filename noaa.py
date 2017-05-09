@@ -7,7 +7,7 @@ from time import gmtime, strftime
 import pypredict
 import subprocess
 import os
-import os, shutil
+import shutil
 import re
 import sys
 
@@ -39,7 +39,7 @@ wavrate='11025'
 stationLat='52.3404'
 stationLon='-21.0579'
 stationAlt='111'
-tleDir=systemDir+'/tle/'
+tleDir=systemDir+'/var/tle/'
 tleFile='weather.txt'
 # Minimum elevation
 minElev='20'
@@ -110,17 +110,17 @@ statusFile='/tmp/info_file'
 # SFPG
 sfpgLink='n'
 
+
+# dongle shift file
+
+dongleShiftFile=systemDir + "var/dongleshift.txt"
+
+
 	###############################
 	###                          ##
 	###     Here be dragons.     ##
 	###                          ##
 	###############################
-
-
-# Read qth file for station data
-
-stationLonNeg=float(stationLon)*-1
-tleFileDir=str(tleDir)+'/'+str(tleFile)
 
 class bcolors:
     HEADER = '\033[95m'
@@ -138,6 +138,25 @@ class bcolors:
 
 logLineStart=bcolors.BOLD+bcolors.HEADER+"***>\t"+bcolors.ENDC+bcolors.OKGREEN
 logLineEnd=bcolors.ENDC
+
+
+## check for last used dongle shift
+
+if os.path.exists(dongleShiftFile):
+    f = open(dongleShiftFile, "r") 
+    newdongleShift = str(float(f.read()))
+    f.close()
+    if newdongleShift != False:
+        dongleShift = newdongleShift
+        print logLineStart+bcolors.OKGREEN + "Recently used dongle shift is:", dongleShift, "ppm", bcolors.ENDC
+    else:
+        print logLineStart+bcolors.OKGREEN + "Using the default dongle shift:", dongleShift, "ppm", bcolors.ENDC
+
+# Read qth file for station data
+
+stationLonNeg=float(stationLon)*-1
+tleFileDir=str(tleDir)+'/'+str(tleFile)
+
 
 class Logger(object):
     def __init__(self, filename="Default.log"):
@@ -499,9 +518,9 @@ while True:
             newdongleShift = calibrate() # replace the global value
             if newdongleShift != False:
                 dongleShift = newdongleShift
-                print bcolors.OKGREEN + "Recalculated dongle shift is:", dongleShift, "ppm", bcolors.ENDC
+                print logLineStart+bcolors.OKGREEN + "Recalculated dongle shift is:", dongleShift, "ppm", bcolors.ENDC
             else:
-                print bcolors.OKGREEN + "Using the old good dongle shift:", dongleShift, "ppm", bcolors.ENDC
+                print logLineStart+bcolors.OKGREEN + "Using the old good dongle shift:", dongleShift, "ppm", bcolors.ENDC
             
             
 

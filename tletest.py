@@ -8,7 +8,7 @@ from time import gmtime, strftime
 
 elNOAA=20
 elMETEOR=35
-tleFileName='/home/filips/progs/autowx/tle/weather.txt'
+tleFileName='/home/filips/progs/autowx/var/tle/weather.txt'
 
 NOAA15=[]
 NOAA18=[]
