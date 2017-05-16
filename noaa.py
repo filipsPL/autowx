@@ -419,8 +419,6 @@ while True:
                 print logLineStart+bcolors.OKGREEN + "Recalculated dongle shift is:", dongleShift, "ppm", bcolors.ENDC
             else:
                 print logLineStart+bcolors.OKGREEN + "Using the old good dongle shift:", dongleShift, "ppm", bcolors.ENDC
-            
-            
 
             print "Recalculating waiting time..."
             now = time.time()
@@ -433,7 +431,7 @@ while True:
             towait = aosTime-now
 
             time.sleep(towait-0.1)
-    
+
         else:
             time.sleep(towait)
             

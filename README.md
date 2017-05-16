@@ -10,6 +10,8 @@
 
 ## Additional requirements:
 - kalibrate (for calibration): install [one of the modern forks](https://github.com/steve-m/kalibrate-rtl/network)
+- gopow (for heatmap plots): https://github.com/dhogborg/rtl-gopow/releases
+- pymultimonaprs
 
 # Orginal readme part:
 
