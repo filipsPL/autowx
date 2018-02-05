@@ -8,13 +8,16 @@ from time import gmtime, strftime
 
 elNOAA=20
 elMETEOR=35
-tleFileName='/home/filips/progs/autowx/var/tle/weather.txt'
+tleFileName='/home/filips/github/autowx/var/tle/all.txt'
 
 NOAA15=[]
 NOAA18=[]
 NOAA19=[]
 METEORM2=[]
-ktore=[ NOAA15, NOAA18, NOAA19, METEORM2 ]
+LILAC1=[]
+LILAC2=[]
+
+ktore=[ NOAA15, NOAA18, NOAA19, METEORM2, LILAC2, LILAC1 ]
 g = []
 
 tlefile=open(tleFileName, 'r')
@@ -34,6 +37,17 @@ for i, line in enumerate(tledata):
 for i, line in enumerate(tledata):
     if "METEOR-M 2" in line: 
         for n in tledata[i:i+3]: METEORM2.append(n.strip('\r\n').rstrip()),
+
+for i, line in enumerate(tledata):
+    if "LILACSAT 2" in line: 
+        for n in tledata[i:i+3]: LILAC2.append(n.strip('\r\n').rstrip()),
+
+for i, line in enumerate(tledata):
+    if "LILACSAT-1" in line: 
+        for n in tledata[i:i+3]: LILAC1.append(n.strip('\r\n').rstrip()),
+        break
+
+
 
 qth = (52.04045, -21.1093, 5)
 

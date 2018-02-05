@@ -1,0 +1,37 @@
+User cancel, exiting...
+***>    Transcoding...
+***>    Removing RAW data
+***>    Creating flight spectrum
+sox FAIL spectrogram: failed to create `/home/dane/nasluch/sat/img/2017/06/04/20170604-0438_NOAA 19_spectro.png': No such file or directory
+***>    Decoding data
+***>    Creating basic image without map
+***>    Satellite: NOAA
+***>    Status: signal processing............................
+***>    Gain: 7.6
+***>    Channel A: 2 (near infrared)
+***>    Channel B: 4 (thermal infrared)
+***>
+***>    SAT: NOAA19, Elevation max: 81, Date: 1496543901
+***>    Creating MCIR-precip image
+***>    Creating HVC image
+***>    Creating MSA image
+***>    Creating therm image
+***>    Removing RAW data
+***>    Finished pass of NOAA 19 at 04:54:08. Sleeping for 10 seconds
+[(1496556119, 1496557053, 934, 76), (1496550154, 1496551018, 864, 30), (1496579417, 1496580351, 934, 60), (1496594302, 1496594931, 629, 46)]
+***>    waiting 5267 seconds  (06:22:34 to 06:36:58, 864s.) for NOAA 15 @ 30° el. 
+Calibration of the dongle...
+***>    Recalculated dongle shift is: 63.194 ppm 
+Recalculating waiting time...
+***>    waiting -1861 seconds  (06:22:34 to 06:36:58, 864s.) for NOAA 15 @ 30° el. 
+Running APRS for -1871.0980289 s
+Traceback (most recent call last):
+  File "./noaa.py", line 442, in <module>
+    runAprs(towait-10)
+  File "./noaa.py", line 130, in runAprs
+    runForDuration(cmdline, duration)
+  File "./noaa.py", line 103, in runForDuration
+    time.sleep(duration)
+IOError: [Errno 22] Invalid argument
+Naciśnięcie dowolnego klawisza kontynuuje…
+

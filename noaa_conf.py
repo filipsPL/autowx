@@ -5,14 +5,16 @@
 systemDir='/home/filips/github/autowx/'
 # Satellite names in TLE plus their frequency
 #satellites = ['NOAA 18','NOAA 15', 'NOAA 19', 'METEOR-M 2']
+#satellites = ['NOAA 18','NOAA 15', 'NOAA 19', 'LILACSAT-1']
 satellites = ['NOAA 18','NOAA 15', 'NOAA 19']
 #freqs = [137912500, 137620000, 137100000, 137900000]
+#freqs = [137912500, 137620000, 137100000, 436510000]
 freqs = [137912500, 137620000, 137100000]
 # Dongle gain
 dongleGain='49.8'
 #
 # Dongle PPM shift, hopefully this will change to reflect different PPM on freq
-dongleShift='63'
+dongleShift='1.5'
 #
 # Dongle index, is there any rtl_fm allowing passing serial of dongle? Unused right now
 dongleIndex='0'
@@ -27,13 +29,16 @@ stationLat='52.3404'
 stationLon='-21.0579'
 stationAlt='111'
 tleDir=systemDir+'/var/tle/'
-tleFile='weather.txt'
+#tleFile='weather.txt'
+tleFile='all.txt'
 # Minimum elevation
 minElev='20'
 minElevMeteor='35'
 decodeMeteor='no'
 # Should I remove RAWs after transcoding?
 removeRAW='yes'
+# Should I remove WAVs after transcoding?
+removeWAV='yes'
 # Directories used in this program
 wxInstallDir='/usr/local/bin'
 # Recording dir, used for RAW and WAV files
@@ -60,7 +65,7 @@ wxAddOverlay='yes'
 wxEnhCreate='yes'
 # List of wxtoimg enhancements, please read docs
 # Commons are: MCIR, MSA, MSA-precip, HVC, HVC-precip, HVCT, HVCT-precip, therm
-wxEnhList = [ 'MCIR-precip', 'HVC', 'MSA', 'therm' ]
+wxEnhList = [ 'MCIR-precip', 'HVC', 'MSA', 'therm', 'HVCT-precip' ]
 # Turning it off creates empty logs...
 wxQuietOutput='no'
 # Decode all despite low signal?
@@ -68,7 +73,7 @@ wxDecodeAll='yes'
 # JPEG quality
 wxJPEGQuality='72'
 # Adding overlay text
-wxAddTextOverlay='yes'
+wxAddTextOverlay='no'
 wxOverlayText='SOME TEXT'
 # Overlay offset - wxtoimg
 # Negative value - push LEFT/UP

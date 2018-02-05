@@ -41,9 +41,12 @@ logLineEnd=bcolors.ENDC
 ## check for last used dongle shift
 
 if os.path.exists(dongleShiftFile):
-    f = open(dongleShiftFile, "r") 
-    newdongleShift = str(float(f.read()))
+    f = open(dongleShiftFile, "r")
+    newdongleShift = f.read()
     f.close()
+    if newdongleShift != '':
+        newdongleShift = str(float(newdongleShift))
+
     if newdongleShift != False:
         dongleShift = newdongleShift
         print logLineStart+bcolors.OKGREEN + "Recently used dongle shift is:", dongleShift, "ppm", bcolors.ENDC
@@ -121,10 +124,14 @@ def justRun(cmdline):
 
 def runAprs(duration):
     '''Run aprs iGate'''
-    print bcolors.GRAY + "Running APRS for %s s" % (duration) + bcolors.ENDC
+    print bcolors.GRAY + "Running command/APRS for %s s" % (duration) + bcolors.ENDC
     #cmdline = ['aprs.sh']   # pymultimonaprs or dump1090
-    cmdline = ['pymultimonaprs', '-v']   # pymultimonaprs or dump1090
-    runForDuration(cmdline, duration)
+    #cmdline = ['acarsdeco2.sh']
+    #cmdline = ['pymultimonaprs', '-v']   # pymultimonaprs or dump1090
+    #cmdline = ['sleep', '10h']
+    #cmdline = ['radar-txt.sh']
+    #runForDuration(cmdline, duration)
+    time.sleep(duration)
 
 def calibrate():
     '''calculate the ppm for the device'''
@@ -154,11 +161,6 @@ def recordFM(freq, fname, duration, xfname):
 		recdir+'/'+xfNoSpace+'-'+fname+'.raw']
     runForDuration(cmdline, duration)
 
-def recordQPSK(duration):
-    print bcolors.GRAY
-    xfNoSpace=xfname.replace(" ","")
-    cmdline = [systemDir+'/meteor_qpsk.py']
-    runForDuration(cmdline, duration)
 
 ##
 ## Status builder. Crazy shit. These are only examples, do what you want :)
@@ -213,8 +215,6 @@ def createoverlay(fname,aosTime,satName,recLen):
     subprocess.call(cmdline, stderr=overlay_log, stdout=overlay_log)
     overlay_log.close()
 
-def decodeQPSK():
-    subprocess.Popen(systemDir+'/decode_meteor.sh')
 
 def decode(fname,aosTime,satName,maxElev,recLen):
 
@@ -234,6 +234,7 @@ def decode(fname,aosTime,satName,maxElev,recLen):
 	m.write('\nSAT: '+str(xfNoSpace)+', Elevation max: '+str(maxElev)+', Date: '+str(fname)+'\n')
 	for psikus in open(mapDir+'/'+str(fname)+'-map.png.txt',"r").readlines():
 	    res=psikus.replace("\n", " \n")
+	    
 	    m.write(res)
 	cmdline = [ wxInstallDir+'/wxtoimg',wxQuietOpt,wxAddText,'-A','-o','-R1','-t','NOAA','-Q '+wxJPEGQuality,recdir+'/'+xfNoSpace+'-'+fname+'.wav',outdir+'/'+fileNameC+'-normal-map.jpg']
 	subprocess.call(cmdline, stderr=m, stdout=m)
@@ -363,6 +364,11 @@ def decode(fname,aosTime,satName,maxElev,recLen):
 		os.unlink(sciezka_plik2)
 	    os.symlink(sciezka_plik,sciezka_plik2)
 
+        if removeWAV in ('yes', 'y', '1'):
+		print logLineStart+bcolors.ENDC+bcolors.RED+'Removing RAW data'+logLineEnd
+		os.remove(recdir+'/'+xfNoSpace+'-'+fname+'.wav')
+
+
 ##
 ## Record and transcode wave file
 ##
@@ -374,13 +380,23 @@ def recordWAV(freq,fname,duration,xfname):
         spectrum(fname)
 
 def spectrum(fname):
+    satTimestamp = int(fname)
+    outdir = "%s/%s" % (imgdir, time.strftime("%Y/%m/%d"))
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
     xfNoSpace=xfname.replace(" ","")
     print logLineStart+'Creating flight spectrum'+logLineEnd
-    cmdline = ['sox',recdir+'/'+xfNoSpace+'-'+fname+'.wav', '-n', 'spectrogram','-o',specdir+'/'+xfNoSpace+'-'+fname+'.png']
+
+    fileNameC = datetime.datetime.fromtimestamp(satTimestamp).strftime('%Y%m%d-%H%M') + "_" + satName
+
+    cmdline = ['sox',recdir+'/'+xfNoSpace+'-'+fname+'.wav', '-n', 'spectrogram','-o',outdir+'/'+fileNameC+'_spectro.png']
     subprocess.call(cmdline)
 
 def findNextPass():
+
     predictions = [pypredict.aoslos(s,minElev,minElevMeteor,stationLat,stationLon,stationAlt,tleFileDir) for s in satellites]
+    print predictions 
     aoses = [p[0] for p in predictions]
     nextIndex = aoses.index(min(aoses))
     return (satellites[nextIndex],\
@@ -392,7 +408,6 @@ def findNextPass():
 ##
 
 while True:
-
 
     (satName, freq, (aosTime, losTime, duration, maxElev)) = findNextPass()
     now = time.time()
@@ -450,20 +465,13 @@ while True:
     print logLineStart+"Beginning pass of "+bcolors.YELLOW+satName+bcolors.OKGREEN+" at "+bcolors.CYAN+str(maxElev)+"°"+bcolors.OKGREEN+" elev.\n"+logLineStart+"Predicted start "+bcolors.CYAN+aosTimeCnv+bcolors.OKGREEN+" and end "+bcolors.CYAN+losTimeCnv+bcolors.OKGREEN+".\n"+logLineStart+"Will record for "+bcolors.CYAN+str(recordTime).split(".")[0]+bcolors.OKGREEN+" seconds."+logLineEnd
     writeStatus(freq,aosTime,losTimeCnv,str(losTime),str(recordTime).split(".")[0],satName,maxElev,'RECORDING')
 #
-    if xfname in ('NOAA 15', 'NOAA 19', 'NOAA 18'):
+    if xfname in ('NOAA 15', 'NOAA 19', 'NOAA 18', 'LILACSAT-1'):
         print "record WAV", freq,fname,recordTime,xfname
         recordWAV(freq,fname,recordTime,xfname)
-    elif xfname in ('METEOR-M 2'):
-	recordQPSK(recordTime)
     print logLineStart+"Decoding data"+logLineEnd
     if xfname in ('NOAA 15', 'NOAA 19', 'NOAA 18'):
         writeStatus(freq,aosTime,losTimeCnv,str(losTime),str(recordTime).split(".")[0],satName,maxElev,'DECODING')
         decode(fname,aosTime,satName,maxElev,recordTime) # make picture
-    elif xfname in ('METEOR-M 2'):
-	if decodeMeteor in ('yes', 'y', '1'):
-	    print "This may take a loooong time and is resource hungry!!!"
-	    writeStatus(freq,aosTime,losTimeCnv,str(losTime),str(recordTime).split(".")[0],satName,maxElev,'DECODING')
-	    decodeQPSK()
     print logLineStart+"Finished pass of "+bcolors.YELLOW+satName+bcolors.OKGREEN+" at "+bcolors.CYAN+losTimeCnv+bcolors.OKGREEN+". Sleeping for"+bcolors.CYAN+" 10"+bcolors.OKGREEN+" seconds"+logLineEnd
     time.sleep(10.0)
 
