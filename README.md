@@ -1,3 +1,9 @@
+# :warning: There is a new, improved, rewriten, enchanced version of this tool called *autowx2* which is available here: https://github.com/filipsPL/autowx2/
+
+Here: https://github.com/filipsPL/autowx2/
+
+This code is no longer maintaned.
+
 # About this fork
 
 :warning: this is fork from cyber-atomus/autowx, modified to fit my needs.
